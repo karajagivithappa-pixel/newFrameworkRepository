@@ -1,0 +1,502 @@
+
+-----read data from properties file
+
+public class Property{
+	public String readDataFromPropertyFile(String key) throws Exception {
+		FileInputStream fis=new FileInputStream("./src/test/resources/propertyFile.properties");
+		Properties p=new Properties();
+		p.load(fis);
+		return p.getProperty(key);
+	}
+}
+
+-----read data from excel 
+
+public class Excel {
+
+    public String getCellData(String sheetName, int rowNum, int cellNum) throws Exception {
+       FileInputStream fis = new FileInputStream("./src/test/resources/excel.xlsx");
+       Workbook workbook = WorkbookFactory.create(fis)) {
+       Sheet sheet = workbook.getSheet(sheetName);
+       Row row = sheet.getRow(rowNum);
+       Cell cell = row.getCell(cellNum);
+           
+       // DataFormatter safely converts numbers, dates, and strings to String
+       DataFormatter formatter = new DataFormatter();
+       return formatter.formatCellValue(cell);
+        }
+    }
+}
+
+-----Reading multiple data from excel
+
+public class Excel {
+	public void getMultipleCellData(String sheetName,int rownum,int cellnum) throws Exception {
+	
+		FileInputStream fis=new FileInputStream("./src/test/resources/excel.xlsx");
+		WorkBook w=WorkbookFactory.create(fis);
+		Sheet s=w.getSheet(sheetName);
+		int rowCount=s.getLastRowNum();
+		for(int i=1;i<=rowCount;i++)
+		{
+			Row row=s.getRow(i);
+			String value1=row.getCell(0).toString();
+			String value2=row.getCell(1).toString();
+			System.out.println(value1+"\t"+value2);
+		}
+	}
+}
+
+-----Writing data to Excel
+
+public class Excel{
+	public void writeDataToExcel(String sheetName,int rownum,int cellnum,String cellValue)throws Exception{
+		FileInputStream fis=new FileInputStream("./src/test/resources/excel.xlsx");
+		WorkBook w=WorkbookFactory.create(fis);
+		Sheet s=w.getSheet(sheetName);
+		Row r=s.getRow(rownum);
+		Cell c=r.createCell(cellnum);
+		c.setCellValue(cellValue);
+		FileOutStream fos=new FileOutStream("./src/test/resources/excel.xlsx");
+		w.write(fos);
+	}
+}
+
+-----Read data from dB
+
+public class Database{
+	public void readDataFromDatabase() throws Exception{
+		Driver d=new Driver();
+		DriverManager.registerDriver(d);
+		Connection c=DriverManager.getConnection("jdbc:mysql://localhost:3307/ninza_hrm","root","root"); 
+		Statement s=c.createStatement();
+		ResultSet set=s.executeQuery("select * from table_Name");
+		while(set.next()){
+			System.out.println(set.getString(1));
+		}
+		c.close();
+	}
+}
+		
+-----Write data to dB
+
+public class Database{
+	public void writeDataToDatabase() throws Exception{
+		Driver d=new Driver();
+		DriverManager.registerDriver(d);
+		Connection c=DriverManager.getConnection("jdbc:mysql://localhost:3307/ninza_hrm","root","root"); 
+		Statement s=c.createStatement();
+		s.executeUpdate("insert into table_Name values(V1,V2,Vn);");
+		c.close();
+	}
+}
+		
+
+-----testng priority code
+
+public class PriorityTest {
+	
+	@Test(priority=0)
+	public void m1Test(){
+		System.out.println("m1");
+	}
+	
+	@Test(priority=1)
+	public void m2Test(){
+		System.out.println("m2");
+	}
+	
+	@Test(priority=2)
+	public void m3Test(){
+		System.out.println("m3");
+	}
+}
+
+-----TestNG dependsOnmethods code
+
+public class DependentTest() {
+	@Test
+	public void m1Test(){
+		System.out.println("m1");
+	}
+	
+	@Test(dependsOnMethods="m1Test")
+	public void m2Test(){
+		System.out.println("m2");
+	}
+}
+	
+-----TestNG Invocation count code
+
+public class InvocationTest{
+	@Test(invocationCount=10)
+	public void m1Test() {
+		System.out.println("m1");
+	}
+}
+	
+-----TestNG enabled code	
+
+public class EnabledTest(){
+	@Test
+	public void m1Test(){
+		System.out.println("m1");
+	}
+	
+	@Test(enabled=false)
+	public void m2Test(){
+		System.out.println("m2");
+	}
+}
+	
+-----TestNG Dataprovider code
+
+public DataProviderTest{
+	@Test(dataProvider="getData")
+	public void phoneModelsTest(String brand,String model){
+		System.out.println(brand+" "+model);
+	}	
+	
+	@DataProvider
+	public Object[][] getData(){
+		Object [][] arr=new Object[3][2];
+		arr[0][0]="iphone";
+		arr[0][1]="17pro";
+		arr[1][0]="poco";
+		arr[1][1]="f1";
+		arr[2][0]="samsung";
+		arr[2][1]="galaxy";
+	
+		return arr;
+	}
+}
+	
+-----Base class code
+
+public class BaseClass {
+	public propertyUtility pu=new PropertyUtility();
+	public ExcelUtility eu=new ExcelUtility();
+	public WebDriverUtility wu=new WebDriverUtility();
+	public DatabaseUtility du=new DatabaseUtility();
+	public WebDriver driver=null;
+	public static WebDriver sdriver=null;
+	public Connection c;
+	
+	@BeforeSuite
+	public void configBS(){
+		//connect to database
+		du.getdBConnection(String url,String username,String password);
+	}
+	@BeforeClass
+	public void configBC(){
+		String browser=pu.readProperty("browser");
+		driver=wu.launchBrowser(browser);
+		sdriver=driver;
+		wu.maximizeBrowser(driver);
+		wu.implicitWait(driver);
+		driver.get(pu.readProperty("url"));
+	}
+	@BeforeMethod
+	public void configBM(){
+		String userName=pu.readProperty("username");
+		String password=pu.readProperty("password");
+		Loginpage lp=new LoginPage(driver);
+		lp.userLogin(userName,password);
+	}
+	@AfterMethod
+	public void configAM(){
+		HomePage hp=new HomePage(driver);
+		Actions a=new Actions(driver);
+		a.moveToElement(hp.getUserIcon()).pause(1000).click(hp.getSignOut()).build().perform();
+	}
+	@AfterClass
+	public void configAC(){
+		//close browser
+		driver.quit();
+	}
+	@AfterSuite
+	public void configAS(){
+		//close database connection
+		c.closeConnection();
+	}
+}
+		
+-----suite xml for batch execution
+
+<Suite name="suite">
+	<test name="test-1">
+		<classes>
+			<class name="package.className1"/>
+			<class name="package.className2"/>
+		</classes>
+	</test>
+</Suite>
+	
+-----suite xml for regional regression testing
+	
+<Suite name="suite">
+	<test name="test-1">
+		<classes>
+			<class name="package.className">
+				<methods>
+					<include name="methodName"/>
+				</methods>
+			</class>
+			<class name="package.className">
+				<methods>
+					<include name="methodName"/>
+				</methods>
+			</class>
+		</classes>
+	</test>
+</Suite>
+
+-------suite xml distributed parallel execution	
+	
+<Suite name="suite" parallel="tests" thread-count="2">
+	<test name="test-1">
+		<classes>
+			<class name="package.className1"/>
+		</classes>
+	</test>
+	<test name="test-2">
+		<classes>
+			<class name="package.className2"/>
+		</classes>
+	</test>
+</Suite>
+
+-----suite xml for cross browser parallel execution
+	
+<Suite name="suite" parallel="tests" thread-count="2">
+	<test name="testRunner-chrome">
+	<parameter name="browser" value="chrome"/>
+		<classes>
+			<class name="package.className"/>
+			<class name="package.className"/>
+		</classes>
+	</test>
+	<test name="testRunner-firefox">
+	<parameter name="browser" value="firefox"/>
+		<classes>
+			<class name="package.className"/>
+			<class name="package.className"/>
+		</classes>
+	</test>
+</Suite>	
+	
+-----suite xml group execution
+
+<Suite name="suite">
+	<groups>
+		<run>
+			<include name="smokeTest"/>
+		</run>
+	</groups>
+	<test name="test-1">
+		<classes>
+			<class name="package.className"/>
+		</classes>
+	</test>
+</Suite>
+
+-----suite xml listener
+
+<Suite name="suite">
+<listeners>
+	<listener class-name="package.ListenerClass"/>
+</listeners>
+	<test name="test-1">
+		<classes>
+			<class name="package.className"/>
+		</classes>
+	</test>
+</Suite>
+
+-----Assertion code
+
+public class AssertTest{
+	@Test
+	public void m1Test(Method mtd){
+		System.out.println(mtd.getName());
+		System.out.println("m1-step1");
+		Assert.assertEquals("Home","Hom");
+		System.out.println("m1-step2");
+	}
+	@Test
+	public void m2Test(Method mtd){
+		System.out.println(mtd.getName());
+		System.out.println("m2-step1");
+		SoftAssert soft=new SoftAssert();
+		soft.assertTrue(false);
+		System.out.println("m2-step2");
+		soft.assertAll();
+	}
+}
+
+-----Utility Class object code
+
+public class UtilityClassObject{
+	public static ThreadLocal<ExtentTest> test=new ThreadLocal<ExtentTest>();
+	public static ThreadLocal<WebDriver> driver=new ThreadLocal<WebDriver>();
+	
+	public static ExtentTest getTest(){
+		return test.get();
+	}
+	public static void setTest(ExtentTest actTest){
+		test.set(actTest);
+	}
+	public static WebDriver get(){
+		return driver.get();
+	}
+	public static void setDriver(WebDriver actDriver){
+		driver.set(actDriver);
+	}
+}
+
+-----listener class code
+
+public class ListenerImpClass implements ITestListener,ISuiteListener{
+	ExtentSparkReporter spark;
+	ExtentReports report;
+	static ExtentTest test;
+	
+	public void onStart(ISuite suite){
+	
+		String time = new Date().toString().replace(" ","_").replace(":","_");
+		spark=new ExtentSparkReporter("./advancereport/extentreport"+time+".html");
+		spark.config().setDocumentTitle("CRM Test suite Results");
+		spark.config().setReportName("CRM Report");
+		spark.config().setTheme(Theme.DARK);
+		
+		ExtentReports report=new ExtentReports();
+		report.attachReporter(spark);
+		report.setSystemInfo("OS", "Windows-11");
+		report.setSystemInfo("browser", "Chrome");
+		
+	}
+	public void onFinish(ISuite suite){
+		report.flush();
+	}
+	public void onTestStart(ITestResult result){
+		System.out.println("-->--"+result.getMethod().getMethodName()+"--<START--");
+		test=report.createTest(result.getMethod().getMethodName());
+		UtilityClassObject.setTest(test);
+		test.log(Status.INFO,result.getMethod().getMethodName()+"--> STARTED <--");
+		
+	}
+	public void onTestSuccess(ITestResult result){
+		System.out.println("---" + result.getMethod().getMethodName() + " END---");
+	    test.log(Status.PASS,result.getMethod().getMethodName()+"--> COMPLETED <--");
+	}
+	public void onTestFailure(ITestResult result){
+		String testName = result.getMethod().getMethodName();
+		TakesScreenshot ts = (TakesScreenshot) BaseClass.sdriver;
+		String filePath = ts.getScreenshotAs(OutputType.BASE64);
+		String time = new Date().toString().replace(" ","_").replace(":","_");
+		test.addScreenCaptureFromBase64String(filePath,testName+time);
+	    test.log(Status.FAIL,result.getMethod().getMethodName()+"--> FAILED <--");
+		
+	}
+}
+		
+-----retry analyzer code
+
+public class RetryAnalyzerImpClass implements IRetryAnalyzer{
+	int count=0;
+	int limitCount=5;
+	
+	public boolean retry(ITestResult result){
+		if(count<limitCount) {	
+			count++;
+			return true;
+		}
+		return false;
+	}
+}
+		
+
+public class ListenerImpClass implements ITestListener,ISuiteListener{
+	
+	@public void onStart(ISuite suite){
+		String time=new Date().toString().replace(" ","_").replace(":","_");
+		ExtentSparkReporter spark=new ExtentSparkReporter("./advancereport/extentreport"+time+".html");
+		spark.config().setDocumentTitle("CRM test suite results");
+		spark.config().setReportName("CRM report");
+		spark.config().setTheme(Theme.DARK);
+		
+		ExtentReports report=new ExtentReports();
+		report.attachReporter(spark);
+		report.setSystemInfo("os","Windows11");
+		report.setSystemInfo("browser","chrome");
+	}
+	@public void onFinish(ISuite suite){
+		report.flush();
+	}
+	@public void onTestStart(ITestResult result){
+		ExtentTest test=report.createTest(result.getMethod().getMethodName());
+		UtilityClassObject.setTest(test);
+		test.log(Status.INFO,result.getMethod().getMethodName()+"-STARTED-");
+	}
+	@public void onTestSuccess(ITestResult result){
+		test.log(Status.PASS,result.getMethod.getMethodName()+" SUCCESS");
+	}
+	@public void onTestFailure(ITestResult result){
+		String testName=result.getMethod().getMethodName();
+		String time=new Date().toString().replace(" ","_").replace(":","_"):
+		TakesScreenShot ts=(TakesScreenShot)BaseClass.sDriver;
+		String filePath=ts.getScreenShotAs(OutputType.BASE64);
+		test.addScreenCaptureFromBASE64String(filePath,testName+time);
+		test.log(Statresult.getMethod().getMethodName()+ "FAIL");
+	}
+	
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
